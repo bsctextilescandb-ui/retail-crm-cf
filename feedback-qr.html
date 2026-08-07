@@ -41,7 +41,12 @@
 /* Concern — Red */
 .emoji-btn.selected-concern{border-color:#C0392B;background:#FEE2E2}
 .emoji-btn.selected-concern .emoji-label{color:#C0392B}
-.emoji-icon{font-size:40px;line-height:1}
+.emoji-icon{font-size:32px;line-height:1;
+  width:72px;height:72px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.emoji-btn[data-val="appreciation"] .emoji-icon{background:#1E7A1E}
+.emoji-btn[data-val="feedback"] .emoji-icon{background:#B8860B}
+.emoji-btn[data-val="concern"] .emoji-icon{background:#C0392B}
 .emoji-label{font-size:12px;font-weight:600;color:var(--ink)}
 
 html,body{min-height:100%;background:var(--ivory);color:var(--ink);
