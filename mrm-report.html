@@ -778,8 +778,88 @@ function renderReport(){
     funnelSection(totalFall, totalB, cv)
   );
 
-  // PAGE 4 — Customer Satisfaction
-  html += page("Customer Satisfaction", "04",
+
+  // PAGE 4 — Customer Sentiment Overview (overall_quick_rating based)
+  var qrData      = fbData.filter(function(f){ return f.overall_quick_rating && f.overall_quick_rating.trim(); });
+  console.log("fbData total:", fbData.length, "qrData:", qrData.length, "sample:", fbData.slice(-3).map(function(f){return {date:f.date,oqr:f.overall_quick_rating};}));
+  var qrTotal     = qrData.length;
+  var qrApprec    = qrData.filter(function(f){ return f.overall_quick_rating==="appreciation"; });
+  var qrFeedback  = qrData.filter(function(f){ return f.overall_quick_rating==="feedback"; });
+  var qrConcern   = qrData.filter(function(f){ return f.overall_quick_rating==="concern"; });
+
+  // Voices by type — exclude feedback_ids already shown in Page 5 (posVoices + negVoices)
+  var shownIds = posVoices.concat(negVoices).map(function(v){ return v.feedback_id; });
+
+  function sentimentVoices(group, minWords) {
+    return group
+      .filter(function(f){
+        var txt = String(f.your_voice||"").trim();
+        return txt && txt.split(/\s+/).length > minWords && shownIds.indexOf(f.feedback_id)===-1;
+      })
+      .sort(function(a,b){ return b.your_voice.split(/\s+/).length - a.your_voice.split(/\s+/).length; })
+      .slice(0,3);
+  }
+
+  var svApprec   = sentimentVoices(qrApprec,  5);
+  var svFeedback = sentimentVoices(qrFeedback, 5);
+  var svConcern  = sentimentVoices(qrConcern,  5);
+
+  function sentimentVoiceHtml(voices, cls, icon, label) {
+    if(voices.length===0) return '<div style="color:var(--ink-60);font-size:13px;margin-bottom:12px">No '+label+' voices with detailed feedback.</div>';
+    var html = '';
+    voices.forEach(function(v,i){
+      html += '<div class="'+cls+'">' +
+        '<div class="vq-num">'+icon+' Voice '+(i+1)+'</div>' +
+        '<div class="vq-text full">"'+esc(String(v.your_voice||"").trim())+'"</div>' +
+        '<div class="vq-meta">' +
+          (v.area?'<span>'+esc(v.area)+'</span><span class="vq-meta-dot">·</span>':'') +
+          (v.date?'<span>'+esc(v.date)+'</span><span class="vq-meta-dot">·</span>':'') +
+          (v.cust_name?'<span style="font-weight:600">'+esc(v.cust_name)+'</span>':'') +
+        '</div>' +
+      '</div>';
+    });
+    return html;
+  }
+
+  html += page("Customer Sentiment Overview", "04",
+    // Stat cards
+    '<div class="section-title">Experience Breakdown</div>' +
+    '<div class="stat-grid-3" style="margin-bottom:20px">' +
+      '<div class="stat-card green" style="-webkit-print-color-adjust:exact;print-color-adjust:exact">' +
+        '<div class="sc-label">🌟 Appreciation</div>' +
+        '<div class="sc-value">'+qrApprec.length+'</div>' +
+        '<div class="sc-change up">'+( qrTotal>0?Math.round((qrApprec.length/qrTotal)*100):0 )+'% of responses</div>' +
+      '</div>' +
+      '<div class="stat-card gold" style="-webkit-print-color-adjust:exact;print-color-adjust:exact">' +
+        '<div class="sc-label">💬 Feedback</div>' +
+        '<div class="sc-value">'+qrFeedback.length+'</div>' +
+        '<div class="sc-change neutral">'+( qrTotal>0?Math.round((qrFeedback.length/qrTotal)*100):0 )+'% of responses</div>' +
+      '</div>' +
+      '<div class="stat-card crimson" style="-webkit-print-color-adjust:exact;print-color-adjust:exact">' +
+        '<div class="sc-label">⚠️ Concern</div>' +
+        '<div class="sc-value">'+qrConcern.length+'</div>' +
+        '<div class="sc-change down">'+( qrTotal>0?Math.round((qrConcern.length/qrTotal)*100):0 )+'% of responses</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--ink-60);text-align:center;margin-bottom:20px">Based on '+qrTotal+' responses with Experience rating out of '+fbData.length+' total feedbacks</div>' +
+
+    // Appreciation voices
+    '<div class="section-title">🌟 Appreciation Voices</div>' +
+    sentimentVoiceHtml(svApprec, 'voice-quote', '🌟', 'Appreciation') +
+
+    // Feedback voices
+    '<div class="section-title" style="margin-top:16px">💬 Feedback Voices</div>' +
+    sentimentVoiceHtml(svFeedback, 'voice-quote', '💬', 'Feedback') +
+
+    // Concern voices
+    '<div class="section-title" style="margin-top:16px">⚠️ Concern Voices</div>' +
+    sentimentVoiceHtml(svConcern, 'concern-quote', '⚠️', 'Concern') +
+
+    (qrTotal===0?'<div style="text-align:center;padding:24px;color:var(--ink-60)">No Experience ratings collected in this period.<br/>This data comes from the new Tell us about your Experience question added to the feedback form.</div>':'')
+  );
+
+  // PAGE 5 — Customer Satisfaction
+  html += page("Customer Satisfaction", "05",
     '<div class="stat-grid-3">' +
       statCard("CSI Score",    csi.score!==null?csi.score+"%":"—", csi.score>=80?"green":"crimson", csi.count+" responses") +
       statCard("NPS Score",    nps.score!==null?nps.score:"—",     nps.score>=95?"green":"gold",    "Promoters: "+nps.promoters) +
@@ -791,8 +871,8 @@ function renderReport(){
     npsBreakdown(nps)
   );
 
-  // PAGE 5 — Voice of Customer (continuous, no page breaks)
-  html += page("Voice of Customer", "05",
+  // PAGE 6 — Voice of Customer (continuous, no page breaks)
+  html += page("Voice of Customer", "06",
     '<div class="section-title">Recurring Themes This Period</div>' +
     themeSection(themes) +
     '<div class="section-title" style="margin-top:20px">Top Positive Voices</div>' +
@@ -805,14 +885,14 @@ function renderReport(){
     '</div>'
   );
 
-  // PAGE 6 — Feedback Journey
-  html += page("Feedback Journey", "06",
+  // PAGE 7 — Feedback Journey
+  html += page("Feedback Journey", "07",
     '<div class="section-title">Negative to Positive Journey</div>' +
     feedbackJourney(fbData, negFB, posFB)
   );
 
-  // PAGE 7 — Divert Analysis
-  html += page("Divert Analysis", "07",
+  // PAGE 8 — Divert Analysis
+  html += page("Divert Analysis", "08",
     '<div class="stat-grid">' +
       statCard("Total Diverts",  divData.length, "",                "") +
       statCard("Divert Rate",    dr+"%",          dr<=5?"green":"crimson", "Target < 5%") +
@@ -825,22 +905,22 @@ function renderReport(){
     divertStatus(divData)
   );
 
-  // PAGE 8 — Team Performance
-  html += page("Team Performance", "08",
+  // PAGE 9 — Team Performance
+  html += page("Team Performance", "09",
     '<div class="section-title">Operational Metrics</div>' +
     teamTable(ffData, fbData, divData)
   );
 
-  // PAGE 9 — Highlights & Actions
-  html += page("Highlights & Action Items", "09",
+  // PAGE 10 — Highlights & Actions
+  html += page("Highlights & Action Items", "10",
     '<div class="section-title">This Period\'s Wins</div>' +
     periodWins(cv, csi.score, nps.score, dr) +
     '<div style="margin-top:20px" class="section-title">Action Items for Next Period</div>' +
     actionItems(cv, csi.score, nps.score, dr, negFB, themes)
   );
 
-  // PAGE 10 — Next Period Targets
-  html += page("Next Period Targets", "10",
+  // PAGE 11 — Next Period Targets
+  html += page("Next Period Targets", "11",
     '<div class="section-title">Carry Forward Targets</div>' +
     targetTable(cv, csi.score, nps.score, dr, fbData.length, totalFall)
   );
