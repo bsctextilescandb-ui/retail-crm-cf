@@ -464,12 +464,14 @@ function generateReport(skipFilter){
     apiWithFallback({action:"get_feedback"}),
     apiWithFallback({action:"get_diverts"}),
     apiWithFallback({action:"get_feedback_questions"}),
+    apiWithFallback({action:"get_call_log"}),
   ]).then(function(res){
     DATA.footfall  = res[0].entries    || [];
     DATA.daily     = res[0].daily_all  || [];
     DATA.feedback  = res[1].feedback   || [];
     DATA.diverts   = res[2].diverts    || [];
     DATA.questions = res[3].questions  || [];
+    DATA.callLog   = res[4].call_log   || [];
     renderReport();
   }).catch(function(e){
     document.getElementById("report").innerHTML =
@@ -1003,14 +1005,84 @@ function voiceQuotes(voices, type){
 }
 
 function feedbackJourney(all, neg, pos){
-  var negMobile  = neg.filter(function(f){return String(f.cust_mobile||"").length>=10;});
+  var negMobile = neg.filter(function(f){return String(f.cust_mobile||"").length>=10;});
+  var callData  = DATA.callLog || [];
+
+  // Get latest call status per feedback_id from call_log
+  var latestCallMap = {};
+  callData.forEach(function(l){
+    var fid = l.feedback_id;
+    if(!latestCallMap[fid]) latestCallMap[fid] = l;
+    else {
+      // Keep latest by call_at timestamp
+      if((l.call_at||"") > (latestCallMap[fid].call_at||"")) latestCallMap[fid] = l;
+    }
+  });
+
+  // Negative feedback with mobile
+  var negMobileIds = negMobile.map(function(f){return f.feedback_id;});
+
+  // Count by latest status
+  var resolved=0, willVisit=0, noAnswer=0, notReachable=0, notSatisfied=0, pending=0;
+  negMobile.forEach(function(f){
+    var latest = latestCallMap[f.feedback_id];
+    if(!latest){
+      pending++;
+    } else {
+      var s = latest.call_status||"";
+      if(s==="issue_resolved")                                   resolved++;
+      else if(s==="will_visit")                                  willVisit++;
+      else if(s==="closed_no_response"||s==="no_answer")         noAnswer++;
+      else if(s==="closed_not_reachable"||s==="not_reachable")   notReachable++;
+      else if(s==="not_satisfied")                               notSatisfied++;
+      else                                                        pending++;
+    }
+  });
+
+  // Thanked — positive feedback called
+  var thanked = pos.filter(function(f){ var l=latestCallMap[f.feedback_id]; return l&&l.call_status==="thanked"; }).length;
+  var posPending = pos.filter(function(f){ return !latestCallMap[f.feedback_id]; }).length;
+
+  var recoveryRate = negMobile.length>0 ? Math.round(((resolved+willVisit)/negMobile.length)*100) : 0;
+
   var html="";
+
+  // Total
   html+='<div class="funnel-row"><div class="fn-label">📋 Total Feedbacks</div><div class="fn-val">'+all.length+'</div><div class="fn-pct">100%</div></div>';
   html+='<div style="text-align:center;font-size:18px;color:var(--ink-30);margin:4px 0">↓</div>';
+
+  // Negative
   html+='<div class="funnel-row" style="background:var(--crimson-l)"><div class="fn-label">🔴 Negative Feedbacks</div><div class="fn-val" style="color:var(--crimson)">'+neg.length+'</div><div class="fn-pct">'+Math.round((neg.length/(all.length||1))*100)+'%</div></div>';
   html+='<div class="funnel-row" style="margin-left:20px"><div class="fn-label">📞 With Mobile (Callable)</div><div class="fn-val">'+negMobile.length+'</div><div class="fn-pct">'+Math.round((negMobile.length/(neg.length||1))*100)+'%</div></div>';
+
+  // Call outcomes
+  html+='<div style="margin-left:40px">';
+  html+='<div class="funnel-row" style="background:var(--green-l);margin-bottom:4px"><div class="fn-label">✅ Issue Resolved</div><div class="fn-val" style="color:var(--green)">'+resolved+'</div><div class="fn-pct">'+Math.round((resolved/(negMobile.length||1))*100)+'%</div></div>';
+  html+='<div class="funnel-row" style="background:var(--navy-l);margin-bottom:4px"><div class="fn-label">🔵 Will Visit Again</div><div class="fn-val" style="color:var(--navy)">'+willVisit+'</div><div class="fn-pct">'+Math.round((willVisit/(negMobile.length||1))*100)+'%</div></div>';
+  html+='<div class="funnel-row" style="background:var(--gold-l);margin-bottom:4px"><div class="fn-label">📵 No Answer / Closed</div><div class="fn-val" style="color:var(--gold)">'+noAnswer+'</div><div class="fn-pct">'+Math.round((noAnswer/(negMobile.length||1))*100)+'%</div></div>';
+  html+='<div class="funnel-row" style="background:var(--surface);margin-bottom:4px"><div class="fn-label">📵 Not Reachable</div><div class="fn-val">'+notReachable+'</div><div class="fn-pct">'+Math.round((notReachable/(negMobile.length||1))*100)+'%</div></div>';
+  if(notSatisfied>0)
+    html+='<div class="funnel-row" style="background:var(--crimson-l);margin-bottom:4px"><div class="fn-label">⚠️ Still Not Satisfied</div><div class="fn-val" style="color:var(--crimson)">'+notSatisfied+'</div><div class="fn-pct">'+Math.round((notSatisfied/(negMobile.length||1))*100)+'%</div></div>';
+  html+='<div class="funnel-row" style="background:var(--surface);margin-bottom:4px"><div class="fn-label">⏳ Pending Call</div><div class="fn-val" style="color:var(--ink-60)">'+pending+'</div><div class="fn-pct">'+Math.round((pending/(negMobile.length||1))*100)+'%</div></div>';
+  html+='</div>';
+  {
+
+  // Recovery rate
+  var rrColor = recoveryRate>=60?"var(--green)":recoveryRate>=40?"var(--gold)":"var(--crimson)";
+  html+='<div style="margin:8px 0 4px;padding:12px 16px;border-radius:8px;background:'+rrColor+'22;border-left:4px solid '+rrColor+'">' +
+    '<div style="font-size:13px;font-weight:700;color:'+rrColor+'">Recovery Rate: '+recoveryRate+'%</div>' +
+    '<div style="font-size:11px;color:var(--ink-60);margin-top:2px">'+(resolved+willVisit)+' of '+negMobile.length+' negative customers resolved or will revisit</div>' +
+  '</div>';
+
   html+='<div style="text-align:center;font-size:18px;color:var(--ink-30);margin:4px 0">↓</div>';
+
+  // Positive
   html+='<div class="funnel-row" style="background:var(--green-l)"><div class="fn-label">🟢 Positive Feedbacks</div><div class="fn-val" style="color:var(--green)">'+pos.length+'</div><div class="fn-pct">'+Math.round((pos.length/(all.length||1))*100)+'%</div></div>';
+  if(thanked>0)
+    html+='<div class="funnel-row" style="margin-left:20px;background:var(--green-l)"><div class="fn-label">✅ Thanked</div><div class="fn-val" style="color:var(--green)">'+thanked+'</div><div class="fn-pct">'+Math.round((thanked/(pos.length||1))*100)+'%</div></div>';
+  if(posPending>0)
+    html+='<div class="funnel-row" style="margin-left:20px"><div class="fn-label">⏳ Pending Thank You Call</div><div class="fn-val" style="color:var(--ink-60)">'+posPending+'</div><div class="fn-pct">'+Math.round((posPending/(pos.length||1))*100)+'%</div></div>';
+
   return html;
 }
 
