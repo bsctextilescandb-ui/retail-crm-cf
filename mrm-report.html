@@ -290,6 +290,21 @@ html,body{min-height:100vh;background:var(--ivory);color:var(--ink)}
   .health-row{page-break-inside:avoid!important;break-inside:avoid!important}
 }
 </style>
+<script>
+function checkPW(){
+  var val=(document.getElementById("pwInput").value||"").trim();
+  if(val==="BSCCANDB"){
+    try{localStorage.setItem("bsc_mrm_unlocked","1");}catch(e){}
+    document.getElementById("pwScreen").style.display="none";
+    showDateScreen();
+  } else {
+    var wrap=document.getElementById("pwInputWrap");
+    if(wrap){wrap.classList.add("shake");setTimeout(function(){wrap.classList.remove("shake");},400);}
+    document.getElementById("pwError").textContent="Incorrect password. Try again.";
+    document.getElementById("pwInput").value="";
+  }
+}
+</script>
 </head>
 <body>
 
@@ -1065,7 +1080,6 @@ function feedbackJourney(all, neg, pos){
     html+='<div class="funnel-row" style="background:var(--crimson-l);margin-bottom:4px"><div class="fn-label">⚠️ Still Not Satisfied</div><div class="fn-val" style="color:var(--crimson)">'+notSatisfied+'</div><div class="fn-pct">'+Math.round((notSatisfied/(negMobile.length||1))*100)+'%</div></div>';
   html+='<div class="funnel-row" style="background:var(--surface);margin-bottom:4px"><div class="fn-label">⏳ Pending Call</div><div class="fn-val" style="color:var(--ink-60)">'+pending+'</div><div class="fn-pct">'+Math.round((pending/(negMobile.length||1))*100)+'%</div></div>';
   html+='</div>';
-  {
 
   // Recovery rate
   var rrColor = recoveryRate>=60?"var(--green)":recoveryRate>=40?"var(--gold)":"var(--crimson)";
