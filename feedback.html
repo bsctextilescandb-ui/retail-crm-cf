@@ -358,25 +358,6 @@ function setQuickRating(val) {
 function renderForm() {
   var html = '<div class="fade-in">';
 
-  // ── Quick Rating — top ──
-  html += '<div class="quick-rating-card">' +
-    '<div class="quick-rating-title">Tell us about your Experience <span class="req">*</span></div>' +
-    '<div class="quick-rating-btns">' +
-      '<div class="emoji-btn'+(quickRating==="appreciation"?" selected-appreciation":"") +'" data-val="appreciation" onclick="setQuickRating(this.dataset.val)">' +
-        '<div class="emoji-icon">🌟</div>' +
-        '<div class="emoji-label">Appreciation</div>' +
-      '</div>' +
-      '<div class="emoji-btn'+(quickRating==="feedback"?" selected-feedback":"") +'" data-val="feedback" onclick="setQuickRating(this.dataset.val)">' +
-        '<div class="emoji-icon">💬</div>' +
-        '<div class="emoji-label">Feedback</div>' +
-      '</div>' +
-      '<div class="emoji-btn'+(quickRating==="concern"?" selected-concern":"") +'" data-val="concern" onclick="setQuickRating(this.dataset.val)">' +
-        '<div class="emoji-icon">⚠️</div>' +
-        '<div class="emoji-label">Concern</div>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-
   // ── Source toggle ──
   html += '<div class="form-card">' +
     '<div class="form-card-header">' +
@@ -394,6 +375,25 @@ function renderForm() {
       '<div class="field"><label>Area / Zone <span class="req">*</span></label>' +
         '<input id="areaInput" type="text" placeholder="e.g. Ground Floor, Sarees Section…" ' +
         'value="' + esc(formState.area) + '" oninput="formState.area=this.value"/>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  // ── Quick Rating — after source, before questions ──
+  html += '<div class="quick-rating-card">' +
+    '<div class="quick-rating-title">Tell us about your Experience <span class="req">*</span></div>' +
+    '<div class="quick-rating-btns">' +
+      '<div class="emoji-btn'+(quickRating==="appreciation"?" selected-appreciation":"") +'" data-val="appreciation" onclick="setQuickRating(this.dataset.val)">' +
+        '<div class="emoji-icon">🌟</div>' +
+        '<div class="emoji-label">Appreciation</div>' +
+      '</div>' +
+      '<div class="emoji-btn'+(quickRating==="feedback"?" selected-feedback":"") +'" data-val="feedback" onclick="setQuickRating(this.dataset.val)">' +
+        '<div class="emoji-icon">💬</div>' +
+        '<div class="emoji-label">Feedback</div>' +
+      '</div>' +
+      '<div class="emoji-btn'+(quickRating==="concern"?" selected-concern":"") +'" data-val="concern" onclick="setQuickRating(this.dataset.val)">' +
+        '<div class="emoji-icon">⚠️</div>' +
+        '<div class="emoji-label">Concern</div>' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -819,5 +819,27 @@ function setLang(code,label){
 </script>
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
+<style>
+/* ── Quick Rating ── */
+.quick-rating-card{background:#fff;border-radius:12px;border:2px solid #B8860B;
+  padding:20px 16px;margin-bottom:12px;text-align:center;
+  box-shadow:0 2px 8px rgba(26,26,46,.08)}
+.quick-rating-title{font-size:15px;font-weight:600;color:#1A1A2E;margin-bottom:16px}
+.quick-rating-btns{display:flex;flex-direction:row;gap:10px;justify-content:center}
+.emoji-btn{flex:1;padding:14px 8px;border-radius:14px;
+  border:2px solid #E8E4D8;background:#F3F1E8;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.emoji-btn:active{transform:scale(.95)}
+.emoji-btn.selected-appreciation{border-color:#1E7A1E;background:#D1FAE5}
+.emoji-btn.selected-appreciation .emoji-label{color:#1E7A1E}
+.emoji-btn.selected-feedback{border-color:#B8860B;background:#FEF3C7}
+.emoji-btn.selected-feedback .emoji-label{color:#B8860B}
+.emoji-btn.selected-concern{border-color:#C0392B;background:#FEE2E2}
+.emoji-btn.selected-concern .emoji-label{color:#C0392B}
+.emoji-icon{font-size:40px;line-height:1;display:block}
+.emoji-btn[data-val="concern"] .emoji-icon{filter:sepia(1) saturate(5) hue-rotate(310deg)}
+.emoji-label{font-size:12px;font-weight:600;color:#1A1A2E}
+</style>
 </body>
 </html>
