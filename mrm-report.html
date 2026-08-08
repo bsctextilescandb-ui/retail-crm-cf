@@ -303,7 +303,7 @@ html,body{min-height:100vh;background:var(--ivory);color:var(--ink)}
   <div class="pw-label">Enter Password</div>
   <div id="pwInputWrap">
     <input class="pw-input" type="password" id="pwInput"
-      placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPW()"/>
+      placeholder="Enter password" onkeydown="if(event.key==='Enter')window.checkPW&&window.checkPW()"/>
   </div>
   <button class="pw-btn" onclick="checkPW()">Access Report</button>
   <div class="pw-error" id="pwError"></div>
