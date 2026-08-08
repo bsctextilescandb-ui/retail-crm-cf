@@ -290,6 +290,7 @@ function apiPost(body) {
    STATE
    ============================================================ */
 var QUESTIONS  = [];
+var quickRating = ""; // appreciation, feedback, concern
 var formState  = {
   source:   "staff",
   answers:  {}, // q_id → selected option
@@ -349,8 +350,32 @@ function showError(msg) {
 /* ============================================================
    RENDER FORM
    ============================================================ */
+function setQuickRating(val) {
+  quickRating = val;
+  renderForm();
+}
+
 function renderForm() {
   var html = '<div class="fade-in">';
+
+  // ── Quick Rating — top ──
+  html += '<div class="quick-rating-card">' +
+    '<div class="quick-rating-title">Tell us about your Experience <span class="req">*</span></div>' +
+    '<div class="quick-rating-btns">' +
+      '<div class="emoji-btn'+(quickRating==="appreciation"?" selected-appreciation":"") +'" data-val="appreciation" onclick="setQuickRating(this.dataset.val)">' +
+        '<div class="emoji-icon">🌟</div>' +
+        '<div class="emoji-label">Appreciation</div>' +
+      '</div>' +
+      '<div class="emoji-btn'+(quickRating==="feedback"?" selected-feedback":"") +'" data-val="feedback" onclick="setQuickRating(this.dataset.val)">' +
+        '<div class="emoji-icon">💬</div>' +
+        '<div class="emoji-label">Feedback</div>' +
+      '</div>' +
+      '<div class="emoji-btn'+(quickRating==="concern"?" selected-concern":"") +'" data-val="concern" onclick="setQuickRating(this.dataset.val)">' +
+        '<div class="emoji-icon">⚠️</div>' +
+        '<div class="emoji-label">Concern</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
 
   // ── Source toggle ──
   html += '<div class="form-card">' +
@@ -523,6 +548,7 @@ function togglePersonal() {
 }
 
 function resetForm() {
+  quickRating = "";
   if (!confirm("Reset all answers?")) return;
   formState.answers      = {};
   formState.others       = {};
@@ -540,6 +566,13 @@ function resetForm() {
    ============================================================ */
 function submitFeedback() {
   var alert = document.getElementById("formAlert");
+
+  // Validate quick rating
+  if (!quickRating) {
+    showAlert(alert, "Please tell us about your experience (🌟 Appreciation, 💬 Feedback or ⚠️ Concern).");
+    window.scrollTo({top:0, behavior:"smooth"});
+    return;
+  }
 
   // Validate area
   var area = document.getElementById("areaInput") ?
@@ -573,11 +606,12 @@ function submitFeedback() {
 
   // Build payload — map q_id to q0..q7 keys
   var payload = {
-    action:     "save_feedback",
-    date:       dateKeyIST(),
-    source:     formState.source,
-    area:       area,
-    your_voice: your_voice,
+    action:               "save_feedback",
+    date:                 dateKeyIST(),
+    source:               formState.source,
+    area:                 area,
+    overall_quick_rating: quickRating,
+    your_voice:           your_voice,
     cust_name:   document.getElementById("custName")   ? document.getElementById("custName").value.trim()   : "",
     cust_mobile: document.getElementById("custMobile") ? document.getElementById("custMobile").value.trim() : "",
     cust_dob:    document.getElementById("custDob")    ? document.getElementById("custDob").value            : "",
